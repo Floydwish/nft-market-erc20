@@ -4,20 +4,14 @@ pragma solidity ^0.8.0;
 /*
 合约设计说明：
 
-一、项目所需功能
-1. 上架 NFT (任意符合 ERC721 标准的 NFT)
-2. 购买 NFT (任意符合 ERC20 标准的代币)
+一、核心功能
+1. listNFT() - 上架 NFT (任意符合 ERC721 标准的 NFT)
+2. buyNFT() - 标准购买 NFT (任意符合 ERC20 标准的代币)
+3. tokensReceived() - 扩展购买 NFT (通过 ERC20 转账回调自动购买)
 
-二、权限控制
-无
-
-三、实现
-1. 上架 NFT：使用 IERC721 接口实现
-2. 购买 NFT：使用 IERC20 接口实现
-
-四、事件
-1. NFT 上架事件
-2. NFT 购买事件
+二、购买方式
+1. 标准方式：先 approve，再调用 buyNFT()
+2. 扩展方式：调用 transferWithCallback() 自动购买
 
 */
 
@@ -30,31 +24,30 @@ import {console} from "forge-std/console.sol";
 import "../src/ERC20Token.sol";
 
 contract myNFTMarket is ITokenReceiver {
-    // 上架 NFT 信息结构体
+    // 上架结构体
     struct listInfo {
         address nftAddress;  // NFT 合约地址
         address seller;      // 卖家地址
-        uint256 nftId;        // NFT ID
-        uint256 price;        // 价格
+        uint256 nftId;       // NFT ID
+        uint256 price;       // 价格
         address erc20Address; // 付款代币合约地址
     }
 
-    // 上架 NFT 列表
-    // NFT 合约地址 => NFT ID => 上架信息
+
     mapping(address => mapping(uint256 => listInfo)) public listedNft;
 
     constructor(){}
 
+    // 事件
     event ListNFT(address indexed nftAddress, uint256 indexed nftId, uint256 price, address erc20Address);
     event BuyNFT(address indexed nftAddress, uint256 indexed nftId, uint256 price, address erc20Address);
 
-    // 上架 NFT
+    // 上架
     function listNFT(address nftAddress, uint256 nftId, uint256 price, address erc20Address) public {
 
         console.log("nftAddress", nftAddress);
         console.log("nftId", nftId);
         console.log("msg.sender", msg.sender);
-        //console.log("IERC721(nftAddress).ownerOf(nftId)", IERC721(nftAddress).ownerOf(nftId));
 
         // 1. 检查 NFT 合约地址是否正常
         console.log("address(0)", address(0));
@@ -92,7 +85,7 @@ contract myNFTMarket is ITokenReceiver {
         emit ListNFT(nftAddress, nftId, price, erc20Address);
     }
 
-    // 购买 NFT
+    // 购买
     function buyNFT(address nftAddress, uint256 nftId, uint256 price, address erc20Address) public {
         // 1. 检查 NFT 合约地址是否正常
         require(nftAddress != address(0), "NFT contract address is invalid");
@@ -127,12 +120,12 @@ contract myNFTMarket is ITokenReceiver {
         emit BuyNFT(nftAddress, nftId, price, erc20Address);
     }
 
+    // 获取上架的 NFT 信息
     function getListedNft(address nftAddress, uint256 nftId) public view returns (listInfo memory) {
         return listedNft[nftAddress][nftId];
     }
 
-    // 实现 ITokenReceiver 接口的 tokensReceived 方法
-    // 在 ERC20 扩展转账时自动调用，实现 NFT 购买功能
+    // ERC20 转账回调购买
     function tokenReceived(address from, address to, uint256 amount, bytes calldata data) external override returns (bool) {
         // 1. 检查调用者是否为 ERC20 合约
         require(to == address(this), "Invalid receiver");
@@ -166,7 +159,7 @@ contract myNFTMarket is ITokenReceiver {
         return true;
     }
     
-    // 内部函数：执行 NFT 购买
+    // 处理购买逻辑
     function _executePurchase(address nftAddress, uint256 nftId, address buyer, uint256 price) internal {
         // 1. 获取卖家地址和 ERC20 合约地址（在删除前获取）
         address seller = listedNft[nftAddress][nftId].seller;
