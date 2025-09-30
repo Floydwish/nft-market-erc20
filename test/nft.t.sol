@@ -1,0 +1,424 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "forge-std/Test.sol";
+import "forge-std/console.sol";
+import "../src/nft.sol";
+import "openzeppelin-contracts/contracts/utils/Strings.sol";
+
+// 不实现 IERC721Receiver 的合约，用于测试
+contract NonReceiverContract {
+    // 这个合约不实现 onERC721Received 函数
+}
+
+contract NFTTest is Test {
+    using Strings for uint256;
+    
+    BaseERC721 public nft;
+    BaseERC721Receiver public receiver;
+    
+    address public owner;
+    address public user1;
+    address public user2;
+    address public user3;
+    
+    string constant TOKEN_NAME = "TestNFT";
+    string constant TOKEN_SYMBOL = "TNFT";
+    string constant BASE_URI = "https://api.example.com/metadata/";
+    
+    function setUp() public {
+        owner = address(this);
+        user1 = makeAddr("user1");
+        user2 = makeAddr("user2");
+        user3 = makeAddr("user3");
+        
+        // 部署 NFT 合约
+        nft = new BaseERC721(TOKEN_NAME, TOKEN_SYMBOL, BASE_URI);
+        
+        // 部署接收者合约
+        receiver = new BaseERC721Receiver();
+        
+        console.log("Setup completed");
+        console.log("NFT Name:", nft.name());
+        console.log("NFT Symbol:", nft.symbol());
+    }
+    
+    // 测试1：基本信息
+    function testBasicInfo() public {
+        assertEq(nft.name(), TOKEN_NAME);
+        assertEq(nft.symbol(), TOKEN_SYMBOL);
+        console.log("Basic info test passed");
+    }
+    
+    // 测试2：支持接口检查
+    function testSupportsInterface() public {
+        // ERC165
+        assertTrue(nft.supportsInterface(0x01ffc9a7));
+        // ERC721
+        assertTrue(nft.supportsInterface(0x80ac58cd));
+        // ERC721Metadata
+        assertTrue(nft.supportsInterface(0x5b5e139f));
+        console.log("Interface support test passed");
+    }
+    
+    // 测试3：铸造 NFT
+    function testMint() public {
+        uint256 tokenId = 1;
+        
+        // 铸造前检查
+        assertEq(nft.balanceOf(owner), 0);
+        
+        // 查询不存在的 token 应该失败
+        vm.expectRevert("Not exist");
+        nft.ownerOf(tokenId);
+        
+        // 铸造 NFT
+        nft.mint(owner, tokenId);
+        
+        // 铸造后检查
+        assertEq(nft.balanceOf(owner), 1);
+        assertEq(nft.ownerOf(tokenId), owner);
+        
+        console.log("Mint test passed");
+    }
+    
+    // 测试4：铸造到零地址（应该失败）
+    function testMintToZeroAddress() public {
+        uint256 tokenId = 1;
+        
+        vm.expectRevert("ERC721: mint to the zero address");
+        nft.mint(address(0), tokenId);
+        
+        console.log("Mint to zero address test passed");
+    }
+    
+    // 测试5：重复铸造（应该失败）
+    function testMintDuplicate() public {
+        uint256 tokenId = 1;
+        
+        // 第一次铸造成功
+        nft.mint(owner, tokenId);
+        
+        // 第二次铸造应该失败
+        vm.expectRevert("ERC721: token already minted");
+        nft.mint(owner, tokenId);
+        
+        console.log("Duplicate mint test passed");
+    }
+    
+    // 测试6：Token URI
+    function testTokenURI() public {
+        uint256 tokenId = 1;
+        
+        // 铸造前查询应该失败
+        vm.expectRevert("ERC721Metadata: URI query for nonexistent token");
+        nft.tokenURI(tokenId);
+        
+        // 铸造后查询
+        nft.mint(owner, tokenId);
+        string memory expectedURI = string.concat(BASE_URI, "1");
+        assertEq(nft.tokenURI(tokenId), expectedURI);
+        
+        console.log("Token URI test passed");
+    }
+    
+    // 测试7：余额查询
+    function testBalanceOf() public {
+        // 零地址查询应该失败
+        vm.expectRevert("Invalid address");
+        nft.balanceOf(address(0));
+        
+        // 正常地址查询
+        assertEq(nft.balanceOf(owner), 0);
+        
+        // 铸造后查询
+        nft.mint(owner, 1);
+        assertEq(nft.balanceOf(owner), 1);
+        
+        console.log("Balance of test passed");
+    }
+    
+    // 测试8：所有者查询
+    function testOwnerOf() public {
+        uint256 tokenId = 1;
+        
+        // 铸造前查询应该失败
+        vm.expectRevert("Not exist");
+        nft.ownerOf(tokenId);
+        
+        // 铸造后查询
+        nft.mint(owner, tokenId);
+        assertEq(nft.ownerOf(tokenId), owner);
+        
+        console.log("Owner of test passed");
+    }
+    
+    // 测试9：授权功能
+    function testApprove() public {
+        uint256 tokenId = 9;
+        
+        // 铸造 NFT
+        nft.mint(owner, tokenId);
+        
+        // 授权前检查
+        assertEq(nft.getApproved(tokenId), address(0));
+        
+        // 授权给 user1
+        nft.approve(user1, tokenId);
+        
+        // 授权后检查
+        assertEq(nft.getApproved(tokenId), user1);
+        
+        console.log("Approve test passed");
+    }
+    
+    // 测试10：授权给自己（应该失败）
+    function testApproveToSelf() public {
+        uint256 tokenId = 1;
+        nft.mint(owner, tokenId);
+        
+        vm.expectRevert("ERC721: approval to current owner");
+        nft.approve(owner, tokenId);
+        
+        console.log("Approve to self test passed");
+    }
+    
+    // 测试11：非所有者授权（应该失败）
+    function testApproveByNonOwner() public {
+        uint256 tokenId = 1;
+        nft.mint(owner, tokenId);
+        
+        vm.prank(user1);
+        vm.expectRevert("ERC721: approve caller is not owner nor approved for all");
+        nft.approve(user2, tokenId);
+        
+        console.log("Approve by non-owner test passed");
+    }
+    
+    // 测试12：完全授权
+    function testSetApprovalForAll() public {
+        // 授权前检查
+        assertFalse(nft.isApprovedForAll(owner, user1));
+        
+        // 设置完全授权
+        nft.setApprovalForAll(user1, true);
+        
+        // 授权后检查
+        assertTrue(nft.isApprovedForAll(owner, user1));
+        
+        // 取消授权
+        nft.setApprovalForAll(user1, false);
+        assertFalse(nft.isApprovedForAll(owner, user1));
+        
+        console.log("Set approval for all test passed");
+    }
+    
+    // 测试13：授权给自己（应该失败）
+    function testSetApprovalForAllToSelf() public {
+        vm.expectRevert("ERC721: approve to caller");
+        nft.setApprovalForAll(owner, true);
+        
+        console.log("Set approval for all to self test passed");
+    }
+    
+    // 测试14：转账功能
+    function testTransferFrom() public {
+        uint256 tokenId = 1;
+        
+        // 铸造 NFT
+        nft.mint(owner, tokenId);
+        
+        // 转账前检查
+        assertEq(nft.balanceOf(owner), 1);
+        assertEq(nft.balanceOf(user1), 0);
+        assertEq(nft.ownerOf(tokenId), owner);
+        
+        // 执行转账
+        nft.transferFrom(owner, user1, tokenId);
+        
+        // 转账后检查
+        assertEq(nft.balanceOf(owner), 0);
+        assertEq(nft.balanceOf(user1), 1);
+        assertEq(nft.ownerOf(tokenId), user1);
+        
+        console.log("Transfer from test passed");
+    }
+    
+    // 测试15：非授权者转账（应该失败）
+    function testTransferFromByNonApproved() public {
+        uint256 tokenId = 1;
+        nft.mint(owner, tokenId);
+        
+        vm.prank(user1);
+        vm.expectRevert("ERC721: transfer caller is not owner nor approved");
+        nft.transferFrom(owner, user2, tokenId);
+        
+        console.log("Transfer from by non-approved test passed");
+    }
+    
+    // 测试16：授权者转账
+    function testTransferFromByApproved() public {
+        uint256 tokenId = 1;
+        nft.mint(owner, tokenId);
+        
+        // 授权给 user1
+        nft.approve(user1, tokenId);
+        
+        // user1 执行转账
+        vm.prank(user1);
+        nft.transferFrom(owner, user2, tokenId);
+        
+        // 检查结果
+        assertEq(nft.ownerOf(tokenId), user2);
+        assertEq(nft.balanceOf(owner), 0);
+        assertEq(nft.balanceOf(user2), 1);
+        
+        console.log("Transfer from by approved test passed");
+    }
+    
+    // 测试17：完全授权者转账
+    function testTransferFromByOperator() public {
+        uint256 tokenId = 1;
+        nft.mint(owner, tokenId);
+        
+        // 设置完全授权
+        nft.setApprovalForAll(user1, true);
+        
+        // user1 执行转账
+        vm.prank(user1);
+        nft.transferFrom(owner, user2, tokenId);
+        
+        // 检查结果
+        assertEq(nft.ownerOf(tokenId), user2);
+        
+        console.log("Transfer from by operator test passed");
+    }
+    
+    // 测试18：安全转账
+    function testSafeTransferFrom() public {
+        uint256 tokenId = 1;
+        nft.mint(owner, tokenId);
+        
+        // 安全转账到 EOA
+        nft.safeTransferFrom(owner, user1, tokenId);
+        assertEq(nft.ownerOf(tokenId), user1);
+        
+        // 安全转账到合约
+        vm.prank(user1);
+        nft.safeTransferFrom(user1, address(receiver), tokenId);
+        assertEq(nft.ownerOf(tokenId), address(receiver));
+        
+        console.log("Safe transfer from test passed");
+    }
+    
+    // 测试19：安全转账到非接收者合约（应该失败）
+    function testSafeTransferFromToNonReceiver() public {
+        uint256 tokenId = 1;
+        nft.mint(owner, tokenId);
+        
+        // 创建一个不实现 IERC721Receiver 的合约
+        NonReceiverContract nonReceiver = new NonReceiverContract();
+        
+        vm.expectRevert("ERC721: transfer to non ERC721Receiver implementer");
+        nft.safeTransferFrom(owner, address(nonReceiver), tokenId);
+        
+        console.log("Safe transfer to non-receiver test passed");
+    }
+    
+    // 测试20：转账到零地址（应该失败）
+    function testTransferToZeroAddress() public {
+        uint256 tokenId = 1;
+        nft.mint(owner, tokenId);
+        
+        vm.expectRevert("ERC721: transfer to the zero address");
+        nft.transferFrom(owner, address(0), tokenId);
+        
+        console.log("Transfer to zero address test passed");
+    }
+    
+    // 测试21：从错误所有者转账（应该失败）
+    function testTransferFromWrongOwner() public {
+        uint256 tokenId = 1;
+        nft.mint(owner, tokenId);
+        
+        vm.prank(user1);
+        vm.expectRevert("ERC721: transfer caller is not owner nor approved");
+        nft.transferFrom(user2, user1, tokenId); // user2 不是所有者
+        
+        console.log("Transfer from wrong owner test passed");
+    }
+    
+    // 测试22：查询不存在的 token 授权（应该失败）
+    function testGetApprovedForNonexistentToken() public {
+        uint256 tokenId = 999;
+        
+        vm.expectRevert("ERC721: approved query for nonexistent token");
+        nft.getApproved(tokenId);
+        
+        console.log("Get approved for nonexistent token test passed");
+    }
+    
+    // 测试23：批量操作测试
+    function testBatchOperations() public {
+        // 铸造多个 NFT
+        for (uint256 i = 1; i <= 5; i++) {
+            nft.mint(owner, i);
+        }
+        
+        // 检查余额
+        assertEq(nft.balanceOf(owner), 5);
+        
+        // 设置完全授权
+        nft.setApprovalForAll(user1, true);
+        
+        // 批量转账
+        vm.startPrank(user1);
+        for (uint256 i = 1; i <= 5; i++) {
+            nft.transferFrom(owner, user2, i);
+        }
+        vm.stopPrank();
+        
+        // 检查结果
+        assertEq(nft.balanceOf(owner), 0);
+        assertEq(nft.balanceOf(user2), 5);
+        
+        console.log("Batch operations test passed");
+    }
+    
+    // 测试24：事件测试
+    function testEvents() public {
+        uint256 tokenId = 1;
+        
+        // 测试 Transfer 事件
+        vm.expectEmit(true, true, true, true);
+        emit BaseERC721.Transfer(address(0), owner, tokenId);
+        nft.mint(owner, tokenId);
+        
+        // 测试 Approval 事件
+        vm.expectEmit(true, true, true, true);
+        emit BaseERC721.Approval(owner, user1, tokenId);
+        nft.approve(user1, tokenId);
+        
+        // 测试 ApprovalForAll 事件
+        vm.expectEmit(true, true, true, true);
+        emit BaseERC721.ApprovalForAll(owner, user1, true);
+        nft.setApprovalForAll(user1, true);
+        
+        console.log("Events test passed");
+    }
+    
+    // 测试25：边界值测试
+    function testBoundaryValues() public {
+        uint256 maxTokenId = type(uint256).max;
+        
+        // 铸造最大 tokenId
+        nft.mint(owner, maxTokenId);
+        assertEq(nft.ownerOf(maxTokenId), owner);
+        
+        // 测试 tokenURI
+        string memory expectedURI = string.concat(BASE_URI, maxTokenId.toString());
+        assertEq(nft.tokenURI(maxTokenId), expectedURI);
+        
+        console.log("Boundary values test passed");
+    }
+}

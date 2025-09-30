@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "openzeppelin-contracts/contracts/utils/Address.sol";
-import "openzeppelin-contracts/contracts/utils/Context.sol";
-import "openzeppelin-contracts/contracts/utils/Strings.sol";
-import "openzeppelin-contracts/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/utils/Address.sol";
+import "@openzeppelin/utils/Context.sol";
+import "@openzeppelin/utils/Strings.sol";
+import "@openzeppelin/token/ERC721/IERC721Receiver.sol";
 
 contract BaseERC721 {
     using Strings for uint256;
