@@ -90,11 +90,14 @@ contract myNFTMarket is ITokenReceiver {
         // 1. 检查 NFT 合约地址是否正常
         require(nftAddress != address(0), "NFT contract address is invalid");
 
-        // 3. 检查 NFT 是否已经上架
+        // 2. 检查 NFT 是否已经上架
         require(listedNft[nftAddress][nftId].nftAddress != address(0), "NFT not listed");
 
-        // 4. 检查代币合约地址是否正常
+        // 3. 检查代币合约地址是否正常
         require(erc20Address != address(0), "ERC20 contract address is invalid");
+
+        // 4. 检查是否自己购买自己的 NFT
+        require(msg.sender != listedNft[nftAddress][nftId].seller, "Buy your owner NFT");
 
         // 5. 检查买家代币余额是否充足
         IERC20 erc20Contract = IERC20(erc20Address);
@@ -103,8 +106,8 @@ contract myNFTMarket is ITokenReceiver {
         // 7. 检查买家代币授权给市场合约的额度
         require(erc20Contract.allowance(msg.sender, address(this)) >= price ,"Insufficient allowance");
 
-        // 8. 检查价格是否大于0
-        require(price > 0, "Price must be greater than 0");
+        // 8. 检查价格是否匹配
+        require(price == listedNft[nftAddress][nftId].price, "Price mismatch");
 
         // 9. 将代币从买家转移到卖家
         require(erc20Contract.transferFrom(msg.sender, listedNft[nftAddress][nftId].seller, price), "Transfer failed");
