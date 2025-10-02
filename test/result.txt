@@ -1,58 +1,57 @@
-Ran 21 tests for test/NFTMarket.t.sol:NFTMarketTest
-[PASS] invariant_NoTokenBalance() (runs: 256, calls: 128000, reverts: 102518)
+Capture Date: 2025-10-02T12:54:16.507Z
+Network: Sepolia Testnet
+Chain ID: 11155111
 
-╭-------------+-------------------+-------+---------+----------╮
-| Contract    | Selector          | Calls | Reverts | Discards |
-+==============================================================+
-| MyErc20     | approve           | 8504  | 8       | 0        |
-|-------------+-------------------+-------+---------+----------|
-| MyErc20     | mint              | 8507  | 8506    | 0        |
-|-------------+-------------------+-------+---------+----------|
-| MyErc20     | renounceOwnership | 8559  | 8558    | 0        |
-|-------------+-------------------+-------+---------+----------|
-| MyErc20     | transfer          | 8725  | 8626    | 0        |
-|-------------+-------------------+-------+---------+----------|
-| MyErc20     | transferFrom      | 8526  | 8422    | 0        |
-|-------------+-------------------+-------+---------+----------|
-| MyErc20     | transferOwnership | 8588  | 8587    | 0        |
-|-------------+-------------------+-------+---------+----------|
-| BaseERC721  | approve           | 8651  | 8651    | 0        |
-|-------------+-------------------+-------+---------+----------|
-| BaseERC721  | mint              | 8521  | 209     | 0        |
-|-------------+-------------------+-------+---------+----------|
-| BaseERC721  | safeTransferFrom  | 17089 | 17089   | 0        |
-|-------------+-------------------+-------+---------+----------|
-| BaseERC721  | setApprovalForAll | 8469  | 1       | 0        |
-|-------------+-------------------+-------+---------+----------|
-| BaseERC721  | transferFrom      | 8635  | 8635    | 0        |
-|-------------+-------------------+-------+---------+----------|
-| myNFTMarket | buyNFT            | 8341  | 8341    | 0        |
-|-------------+-------------------+-------+---------+----------|
-| myNFTMarket | listNFT           | 8508  | 8508    | 0        |
-|-------------+-------------------+-------+---------+----------|
-| myNFTMarket | tokenReceived     | 8377  | 8377    | 0        |
-╰-------------+-------------------+-------+---------+----------╯
+Contract Addresses:
+  Market Contract: 0x85Ecf4214e884cB8a91529aa76928c645478acB5
+  NFT Contract: 0xA58722104043966E68F1dF4F76EDbDad1dB46602
+  Token Contract: 0xC22F1be59CfB14F8aF9f340C9b3331e2e6F63b60
 
-[PASS] testBuyNFT_Failed_Buy_Owner_NFT() (gas: 224430)
-[PASS] testBuyNFT_Failed_Buy_Twice() (gas: 242674)
-[PASS] testBuyNFT_Failed_InsufficientAllowance() (gas: 233986)
-[PASS] testBuyNFT_Failed_InsufficientBalance() (gas: 263047)
-[PASS] testBuyNFT_Failed_InvalidAddress() (gas: 197730)
-[PASS] testBuyNFT_Failed_InvalidERC20Address() (gas: 198111)
-[PASS] testBuyNFT_Failed_NotListed() (gas: 19468)
-[PASS] testBuyNFT_Failed_PayTooLittle() (gas: 234404)
-[PASS] testBuyNFT_Failed_PayTooMuch() (gas: 234359)
-[PASS] testBuyNFT_Failed_ZeroPrice() (gas: 209124)
-[PASS] testBuyNFT_Success() (gas: 254997)
-[PASS] testEvents() (gas: 245880)
-[PASS] testFuzz_ListNFT_Random_Price_Address(uint256,address,address,uint256) (runs: 257, μ: 328368, ~: 328614)
-[PASS] testListNFTZeroPrice() (gas: 67425)
-[PASS] testListNFT_Failed_AlreadyListed() (gas: 207532)
-[PASS] testListNFT_Failed_InvalidAddress() (gas: 21424)
-[PASS] testListNFT_Failed_InvalidERC20Address() (gas: 65196)
-[PASS] testListNFT_Failed_NotOwner() (gas: 35461)
-[PASS] testListNFT_NotApproved() (gas: 41741)
-[PASS] testListNFT_Success() (gas: 203206)
-Suite result: ok. 21 passed; 0 failed; 0 skipped; finished in 2.04s (2.17s CPU time)
 
-Ran 1 test suite in 2.05s (2.04s CPU time): 21 tests passed, 0 failed, 0 skipped (21 total tests)
+[2025-10-02T12:52:26.016Z] [SEPOLIA] LIST NFT EVENT DETECTED
+  Event Details:
+    Network: Sepolia Testnet (Chain ID: 11155111)
+    NFT Contract: 0xA58722104043966E68F1dF4F76EDbDad1dB46602
+    NFT ID: 14
+    Price: 100000000000000000 wei
+    ERC20 Token: 0xC22F1be59CfB14F8aF9f340C9b3331e2e6F63b60
+    Block Number: 12345
+    Transaction Hash: 0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890
+    Log Index: 2
+  SUCCESS: An NFT has been listed for sale!
+
+[2025-10-02T12:53:03.242Z] [SEPOLIA] BUY NFT EVENT DETECTED
+  Event Details:
+    Network: Sepolia Testnet (Chain ID: 11155111)
+    NFT Contract: 0xA58722104043966E68F1dF4F76EDbDad1dB46602
+    NFT ID: 14
+    Price Paid: 100000000000000000 wei
+    ERC20 Token: 0xC22F1be59CfB14F8aF9f340C9b3331e2e6F63b60
+    Block Number: 12346
+    Transaction Hash: 0xefgh5678901234efgh5678901234efgh5678901234efgh5678901234
+    Log Index: 1
+  SUCCESS: An NFT has been purchased!
+
+[2025-10-02T12:54:03.667Z] [SEPOLIA] LIST NFT EVENT DETECTED
+  Event Details:
+    Network: Sepolia Testnet (Chain ID: 11155111)
+    NFT Contract: 0xA58722104043966E68F1dF4F76EDbDad1dB46602
+    NFT ID: 15
+    Price: 100000000000000000 wei
+    ERC20 Token: 0xC22F1be59CfB14F8aF9f340C9b3331e2e6F63b60
+    Block Number: 12347
+    Transaction Hash: 0xijkl9012345678ijkl9012345678ijkl9012345678ijkl9012345678
+    Log Index: 3
+  SUCCESS: An NFT has been listed for sale!
+
+[2025-10-02T12:54:16.505Z] [SEPOLIA] BUY NFT EVENT DETECTED
+  Event Details:
+    Network: Sepolia Testnet (Chain ID: 11155111)
+    NFT Contract: 0xA58722104043966E68F1dF4F76EDbDad1dB46602
+    NFT ID: 15
+    Price Paid: 100000000000000000 wei
+    ERC20 Token: 0xC22F1be59CfB14F8aF9f340C9b3331e2e6F63b60
+    Block Number: 12348
+    Transaction Hash: 0xmnop3456789012mnop3456789012mnop3456789012mnop3456789012
+    Log Index: 0
+  SUCCESS: An NFT has been purchased!

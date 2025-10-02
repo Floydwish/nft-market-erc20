@@ -42,6 +42,9 @@ contract myNFTMarket is ITokenReceiver {
     event ListNFT(address indexed nftAddress, uint256 indexed nftId, uint256 price, address erc20Address);
     event BuyNFT(address indexed nftAddress, uint256 indexed nftId, uint256 price, address erc20Address);
 
+    // 使用自定义错误
+    // 优点：gas 消耗更低，错误信息不回截断，符合最佳实践，类型安全
+    error InvalidNFTAddress();
     // 上架
     function listNFT(address nftAddress, uint256 nftId, uint256 price, address erc20Address) public {
 
@@ -88,7 +91,8 @@ contract myNFTMarket is ITokenReceiver {
     // 购买
     function buyNFT(address nftAddress, uint256 nftId, uint256 price, address erc20Address) public {
         // 1. 检查 NFT 合约地址是否正常
-        require(nftAddress != address(0), "NFT contract address is invalid");
+        //require(nftAddress != address(0), "NFT contract address is invalid");
+        if(nftAddress == address(0)) revert InvalidNFTAddress();
 
         // 2. 检查 NFT 是否已经上架
         require(listedNft[nftAddress][nftId].nftAddress != address(0), "NFT not listed");
@@ -107,6 +111,7 @@ contract myNFTMarket is ITokenReceiver {
         require(erc20Contract.allowance(msg.sender, address(this)) >= price ,"Insufficient allowance");
 
         // 8. 检查价格是否匹配
+        // 防止买家通过支付错误价格来影响市场
         require(price == listedNft[nftAddress][nftId].price, "Price mismatch");
 
         // 9. 将代币从买家转移到卖家

@@ -1,0 +1,28 @@
+{
+  "name": "nft-market-event-listener",
+  "version": "1.0.0",
+  "description": "NFT Market Event Listener using Viem.sh",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "nft",
+    "marketplace",
+    "blockchain",
+    "ethereum",
+    "viem",
+    "event-listener"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "viem": "^2.21.10",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
