@@ -1,4 +1,4 @@
-Capture Date: 2025-10-02T12:54:16.507Z
+1. 部署信息
 Network: Sepolia Testnet
 Chain ID: 11155111
 
@@ -8,7 +8,7 @@ Contract Addresses:
   Token Contract: 0xC22F1be59CfB14F8aF9f340C9b3331e2e6F63b60
 
 
-[2025-10-02T12:52:26.016Z] [SEPOLIA] LIST NFT EVENT DETECTED
+2. NFT 上架事件
   Event Details:
     Network: Sepolia Testnet (Chain ID: 11155111)
     NFT Contract: 0xA58722104043966E68F1dF4F76EDbDad1dB46602
@@ -18,9 +18,8 @@ Contract Addresses:
     Block Number: 12345
     Transaction Hash: 0xabcd1234567890abcdef1234567890abcdef1234567890abcdef1234567890
     Log Index: 2
-  SUCCESS: An NFT has been listed for sale!
 
-[2025-10-02T12:53:03.242Z] [SEPOLIA] BUY NFT EVENT DETECTED
+3. NFT 购买事件
   Event Details:
     Network: Sepolia Testnet (Chain ID: 11155111)
     NFT Contract: 0xA58722104043966E68F1dF4F76EDbDad1dB46602
@@ -30,9 +29,8 @@ Contract Addresses:
     Block Number: 12346
     Transaction Hash: 0xefgh5678901234efgh5678901234efgh5678901234efgh5678901234
     Log Index: 1
-  SUCCESS: An NFT has been purchased!
 
-[2025-10-02T12:54:03.667Z] [SEPOLIA] LIST NFT EVENT DETECTED
+4. NFT 上架事件
   Event Details:
     Network: Sepolia Testnet (Chain ID: 11155111)
     NFT Contract: 0xA58722104043966E68F1dF4F76EDbDad1dB46602
@@ -42,9 +40,8 @@ Contract Addresses:
     Block Number: 12347
     Transaction Hash: 0xijkl9012345678ijkl9012345678ijkl9012345678ijkl9012345678
     Log Index: 3
-  SUCCESS: An NFT has been listed for sale!
 
-[2025-10-02T12:54:16.505Z] [SEPOLIA] BUY NFT EVENT DETECTED
+5. NFT 购买事件（转账回调购买）
   Event Details:
     Network: Sepolia Testnet (Chain ID: 11155111)
     NFT Contract: 0xA58722104043966E68F1dF4F76EDbDad1dB46602
@@ -54,4 +51,3 @@ Contract Addresses:
     Block Number: 12348
     Transaction Hash: 0xmnop3456789012mnop3456789012mnop3456789012mnop3456789012
     Log Index: 0
-  SUCCESS: An NFT has been purchased!

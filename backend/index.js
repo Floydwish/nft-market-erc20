@@ -59,17 +59,17 @@ async function main() {
     
     console.log('='.repeat(50));
     
-    // 创建事件监听器
+    // 1.创建事件监听器实例
     eventListener = new NFTMarketEventListener();
     
-    // 初始化连接
+    // 2.初始化连接
     const connected = await eventListener.initialize();
     if (!connected) {
       console.error('❌ Failed to initialize event listener');
       process.exit(1);
     }
     
-    // 开始监听事件
+    // 3.开始监听事件
     await eventListener.startListening();
     
     // 显示状态

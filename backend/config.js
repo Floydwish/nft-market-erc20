@@ -38,8 +38,8 @@ const getNetworkConfig = () => {
 
 // 事件签名配置
 const eventSignatures = {
-  ListNFT: '0x...', // 将在运行时计算
-  BuyNFT: '0x...'   // 将在运行时计算
+  ListNFT: '0x...', // 运行时计算
+  BuyNFT: '0x...'   // 运行时计算
 };
 
 module.exports = {

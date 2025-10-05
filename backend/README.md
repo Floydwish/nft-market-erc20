@@ -200,6 +200,3 @@ backend/
 2. 实现事件处理函数
 3. 在 `processLog` 方法中添加事件分发逻辑
 
-## 许可证
-
-MIT License

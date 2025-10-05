@@ -22,14 +22,16 @@ class NFTMarketEventListener {
     ]);
   }
 
-  // 初始化客户端
+  // 一、建立网络连接
   async initialize() {
     try {
+
+      // 1.创建 public 客户端（用于连接到指定网络）
       this.client = createPublicClient({
         transport: http(this.networkConfig.rpcUrl)
       });
       
-      // 测试连接
+      // 2.测试连接
       const chainId = await this.client.getChainId();
       console.log(`✅ Connected to ${this.networkConfig.name} (Chain ID: ${chainId})`);
       
@@ -44,36 +46,38 @@ class NFTMarketEventListener {
     }
   }
 
-  // 开始监听事件
+  // 二、开始监听事件
   async startListening() {
+    // 1.状态检查
     if (this.isListening) {
-      console.log('⚠️  Already listening for events');
+      console.log('Already listening for events');
       return;
     }
 
     if (!this.networkConfig.contracts.marketAddress) {
-      console.error('❌ Market contract address not configured');
+      console.error('Market contract address not configured');
       console.log('Please set MARKET_CONTRACT_ADDRESS environment variable');
       return;
     }
 
+    // 2.启动监听
     try {
-      console.log(`🎧 Starting to listen for events on ${this.networkConfig.name}...`);
-      console.log(`📋 Market Contract: ${this.networkConfig.contracts.marketAddress}`);
+      console.log(`Starting to listen for events on ${this.networkConfig.name}...`);
+      console.log(`Market Contract: ${this.networkConfig.contracts.marketAddress}`);
       
       // 开始监听新区块
       this.watchBlocks = this.client.watchBlocks({
         onBlock: (block) => this.processBlock(block),
         onError: (error) => {
-          console.error('❌ Block watching error:', error);
+          console.error('Block watching error:', error);
         }
       });
       
       this.isListening = true;
-      console.log('✅ Event listener started successfully');
+      console.log('Event listener started successfully');
       
     } catch (error) {
-      console.error('❌ Failed to start event listener:', error.message);
+      console.error('Failed to start event listener:', error.message);
     }
   }
 
@@ -84,44 +88,46 @@ class NFTMarketEventListener {
       this.watchBlocks = null;
     }
     this.isListening = false;
-    console.log('🛑 Event listener stopped');
+    console.log('Event listener stopped');
   }
 
-  // 处理新区块
+  // 三、处理新区块
   async processBlock(block) {
     try {
-      // 获取区块中的日志
+      // 获取区块中的所有日志
       const logs = await this.client.getLogs({
         address: this.networkConfig.contracts.marketAddress,
         fromBlock: block.number,
         toBlock: block.number
       });
 
-      // 处理每个日志
+      // 处理单个日志
       for (const log of logs) {
         await this.processLog(log);
       }
     } catch (error) {
-      console.error('❌ Error processing block:', error.message);
+      console.error('Error processing block:', error.message);
     }
   }
 
-  // 处理单个日志
+  // 四、处理单个日志
   async processLog(log) {
     try {
       const eventSignature = log.topics[0];
       
+      // 根据事件签名匹配
       if (eventSignature === this.eventSignatures.ListNFT) {
         await this.handleListNFTEvent(log);
-      } else if (eventSignature === this.eventSignatures.BuyNFT) {
+      } 
+      else if (eventSignature === this.eventSignatures.BuyNFT) {
         await this.handleBuyNFTEvent(log);
       }
     } catch (error) {
-      console.error('❌ Error processing log:', error.message);
+      console.error('Error processing log:', error.message);
     }
   }
 
-  // 处理 ListNFT 事件
+  // 五、处理 ListNFT 事件
   async handleListNFTEvent(log) {
     try {
       // 解析事件数据
@@ -157,7 +163,7 @@ class NFTMarketEventListener {
     }
   }
 
-  // 处理 BuyNFT 事件
+  // 六、处理 BuyNFT 事件
   async handleBuyNFTEvent(log) {
     try {
       // 解析事件数据
