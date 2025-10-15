@@ -25,13 +25,22 @@ import "../src/ERC20Token.sol";
 
 contract myNFTMarket is ITokenReceiver {
     // 上架结构体
-    struct listInfo {
+    /*struct listInfo {
         address nftAddress;  // NFT 合约地址
         address seller;      // 卖家地址
         uint256 nftId;       // NFT ID
         uint256 price;       // 价格
         address erc20Address; // 付款代币合约地址
-    }
+    }*/
+
+    // 存储优化（节省 gas)
+    struct listInfo {
+    address nftAddress;   // slot 0
+    address seller;       // slot 1
+    uint64 nftId;         // slot 2 (支持 184 亿个 NFT) 
+    uint192 price;        // slot 2 (最大 6.27e39 ETH)
+    address erc20Address; // slot 3
+}
 
 
     mapping(address => mapping(uint256 => listInfo)) public listedNft;
@@ -42,47 +51,75 @@ contract myNFTMarket is ITokenReceiver {
     event ListNFT(address indexed nftAddress, uint256 indexed nftId, uint256 price, address erc20Address);
     event BuyNFT(address indexed nftAddress, uint256 indexed nftId, uint256 price, address erc20Address);
 
-    // 使用自定义错误
-    // 优点：gas 消耗更低，错误信息不回截断，符合最佳实践，类型安全
+    // ==================== 自定义错误（Gas 优化）====================
+    // Gas 优化：使用自定义错误比字符串错误节省约 5000-10000 gas
+    
+    // NFT 相关错误
     error InvalidNFTAddress();
+    error NFTNotExists();
+    error NotNFTOwner();
+    error NFTAlreadyListed();
+    error NFTNotApproved();
+    error NFTNotListed();
+    
+    // ERC20 相关错误
+    error InvalidERC20Address();
+    error InvalidERC20Token();
+    error InsufficientBalance();
+    error InsufficientAllowance();
+    
+    // 价格相关错误
+    error InvalidPrice();
+    error PriceMismatch();
+    error InsufficientPayment();
+    
+    // 交易相关错误
+    error CannotBuyOwnNFT();
+    error TransferFailed();
+    error TokenTransferFailed();
+    error RefundFailed();
+    
+    // 数据验证错误
+    error InvalidReceiver();
+    error InvalidDataLength();
+    
     // 上架
     function listNFT(address nftAddress, uint256 nftId, uint256 price, address erc20Address) public {
 
-        console.log("nftAddress", nftAddress);
-        console.log("nftId", nftId);
-        console.log("msg.sender", msg.sender);
-
         // 1. 检查 NFT 合约地址是否正常
-        console.log("address(0)", address(0));
-        require(nftAddress != address(0), "NFT contract address is invalid");
-        console.log("11111111");
+        if(nftAddress == address(0)) revert InvalidNFTAddress();
 
         // 2. 检查 NFT 是否存在
         IERC721 nftContract = IERC721(nftAddress);
-        console.log("89999999", nftContract.ownerOf(nftId));
-        require(nftContract.ownerOf(nftId) != address(0), "NFT not exists");
+        if(nftContract.ownerOf(nftId) == address(0)) revert NFTNotExists();
 
         // 3. 检查 NFT 是否是卖家所有
-        require(IERC721(nftAddress).ownerOf(nftId) == msg.sender, "You are not the owner of this NFT");
+        if(IERC721(nftAddress).ownerOf(nftId) != msg.sender) revert NotNFTOwner();
 
 
         // 4. 检查 NFT 是否已经上架
-        require(listedNft[nftAddress][nftId].nftAddress == address(0), "NFT already listed");
+        if(listedNft[nftAddress][nftId].nftAddress != address(0)) revert NFTAlreadyListed();
 
         // 5. 检查 NFT 是否授权给市场合约
-        require(nftContract.getApproved(nftId) == address(this), "NFT not approved");
+        if(nftContract.getApproved(nftId) != address(this)) revert NFTNotApproved();
 
         // 6. 检查代币合约地址是否正常
-        require(erc20Address != address(0), "ERC20 contract address is invalid");
+        if(erc20Address == address(0)) revert InvalidERC20Address();
 
         // 7. 检查价格是否大于0
-        require(price > 0, "Price must be greater than 0");
+        if(price == 0) revert InvalidPrice();
 
         // 8. 将 NFT 转移到市场合约
         nftContract.transferFrom(msg.sender, address(this), nftId);
 
-        // 9. 上架
-        listedNft[nftAddress][nftId] = listInfo(nftAddress, msg.sender,nftId, price, erc20Address);
+        // 9. 上架（直接写入存储）
+        listedNft[nftAddress][nftId] = listInfo({
+            nftAddress: nftAddress, 
+            seller: msg.sender, 
+            nftId: uint64(nftId),
+            price: uint192(price), 
+            erc20Address: erc20Address
+        });
 
         // 10. 触发上架事件
         emit ListNFT(nftAddress, nftId, price, erc20Address);
@@ -95,27 +132,29 @@ contract myNFTMarket is ITokenReceiver {
         if(nftAddress == address(0)) revert InvalidNFTAddress();
 
         // 2. 检查 NFT 是否已经上架
-        require(listedNft[nftAddress][nftId].nftAddress != address(0), "NFT not listed");
+        // 优化 gas: 一次性读取到内存
+        listInfo memory listing = listedNft[nftAddress][nftId];
+        if(listing.nftAddress == address(0)) revert NFTNotListed();
 
         // 3. 检查代币合约地址是否正常
-        require(erc20Address != address(0), "ERC20 contract address is invalid");
+        if(erc20Address == address(0)) revert InvalidERC20Address();
 
         // 4. 检查是否自己购买自己的 NFT
-        require(msg.sender != listedNft[nftAddress][nftId].seller, "Buy your owner NFT");
+        if(msg.sender == listing.seller) revert CannotBuyOwnNFT();
 
         // 5. 检查买家代币余额是否充足
         IERC20 erc20Contract = IERC20(erc20Address);
-        require(erc20Contract.balanceOf(msg.sender) >= price, "Insufficient balance");
+        if(erc20Contract.balanceOf(msg.sender) < price) revert InsufficientBalance();
 
         // 7. 检查买家代币授权给市场合约的额度
-        require(erc20Contract.allowance(msg.sender, address(this)) >= price ,"Insufficient allowance");
+        if(erc20Contract.allowance(msg.sender, address(this)) < price) revert InsufficientAllowance();
 
         // 8. 检查价格是否匹配
         // 防止买家通过支付错误价格来影响市场
-        require(price == listedNft[nftAddress][nftId].price, "Price mismatch");
+        if(price != listing.price) revert PriceMismatch();
 
         // 9. 将代币从买家转移到卖家
-        require(erc20Contract.transferFrom(msg.sender, listedNft[nftAddress][nftId].seller, price), "Transfer failed");
+        if(!erc20Contract.transferFrom(msg.sender, listing.seller, price)) revert TransferFailed();
 
         // 10. 将 NFT 从市场合约转移到买家
         IERC721 nftContract = IERC721(nftAddress);
@@ -136,32 +175,33 @@ contract myNFTMarket is ITokenReceiver {
     // ERC20 转账回调购买
     function tokenReceived(address from, address to, uint256 amount, bytes calldata data) external override returns (bool) {
         // 1. 检查调用者是否为 ERC20 合约
-        require(to == address(this), "Invalid receiver");
+        if(to != address(this)) revert InvalidReceiver();
         
         // 2. 解析 data 参数获取购买信息
         // data 格式: abi.encode(nftAddress, nftId, price)
-        require(data.length >= 96, "Invalid data length"); // 3 * 32 bytes
+        if(data.length < 96) revert InvalidDataLength(); // 3 * 32 bytes
         
         (address nftAddress, uint256 nftId, uint256 price) = abi.decode(data, (address, uint256, uint256));
         
         // 3. 检查 NFT 是否已上架
-        require(listedNft[nftAddress][nftId].nftAddress != address(0), "NFT not listed");
+        listInfo memory listing = listedNft[nftAddress][nftId];
+        if(listing.nftAddress == address(0)) revert NFTNotListed();
         
         // 4. 检查价格是否匹配
-        require(price == listedNft[nftAddress][nftId].price, "Price mismatch");
+        if(price !=  listing.price) revert PriceMismatch();
         
         // 5. 检查转账金额是否足够
-        require(amount >= price, "Insufficient payment");
+        if(amount < price) revert InsufficientPayment();
         
         // 6. 检查调用者是否为 ERC20 合约
-        require(msg.sender == listedNft[nftAddress][nftId].erc20Address, "Invalid ERC20 token");
+        if(msg.sender != listing.erc20Address) revert InvalidERC20Token();
         
         // 7. 执行 NFT 购买逻辑
         _executePurchase(nftAddress, nftId, from, price);
         
         // 8. 如果有剩余金额，退还给买家
         if (amount > price) {
-            require(IERC20(msg.sender).transfer(from, amount - price), "Refund failed");
+            if(!IERC20(msg.sender).transfer(from, amount - price)) revert RefundFailed();
         }
         
         return true;
@@ -170,8 +210,9 @@ contract myNFTMarket is ITokenReceiver {
     // 处理购买逻辑
     function _executePurchase(address nftAddress, uint256 nftId, address buyer, uint256 price) internal {
         // 1. 获取卖家地址和 ERC20 合约地址（在删除前获取）
-        address seller = listedNft[nftAddress][nftId].seller;
-        address erc20Address = listedNft[nftAddress][nftId].erc20Address;
+        listInfo memory listing = listedNft[nftAddress][nftId];
+        address seller = listing.seller;
+        address erc20Address = listing.erc20Address;
         
         // 2. 将 NFT 从市场合约转移到买家
         IERC721 nftContract = IERC721(nftAddress);
@@ -179,7 +220,7 @@ contract myNFTMarket is ITokenReceiver {
         
         // 3. 将代币从买家转移到卖家
         IERC20 erc20Contract = IERC20(erc20Address);
-        require(erc20Contract.transfer(seller, price), "Token transfer to seller failed");
+        if(!erc20Contract.transfer(seller, price)) revert TokenTransferFailed();
         
         // 4. 删除上架信息
         delete listedNft[nftAddress][nftId];

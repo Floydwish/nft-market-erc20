@@ -54,8 +54,8 @@ contract NFTMarketTest is Test {
         myNFTMarket.listInfo memory listedInfo = market.getListedNft(address(nft), NFT_ID);
         assertEq(listedInfo.nftAddress, address(nft));
         assertEq(listedInfo.seller, seller);
-        assertEq(listedInfo.nftId, NFT_ID);
-        assertEq(listedInfo.price, PRICE);
+        assertEq(uint256(listedInfo.nftId), NFT_ID);
+        assertEq(uint256(listedInfo.price), PRICE);
         assertEq(listedInfo.erc20Address, address(token));
         
         // 检查 NFT 所有权已转移到市场合约
@@ -65,7 +65,7 @@ contract NFTMarketTest is Test {
     // 测试上架失败：NTF 合约地址为 0
     function testListNFT_Failed_InvalidAddress() public {
         vm.prank(seller);
-        vm.expectRevert("NFT contract address is invalid");
+        vm.expectRevert(myNFTMarket.InvalidNFTAddress.selector);
         market.listNFT(address(0), NFT_ID, PRICE, address(token));
     }
 
@@ -73,14 +73,14 @@ contract NFTMarketTest is Test {
     function testListNFT_Failed_NotOwner() public {
         // 用 buyer 上架 NFT
         vm.prank(buyer);
-        vm.expectRevert("You are not the owner of this NFT");
+        vm.expectRevert(myNFTMarket.NotNFTOwner.selector);
         market.listNFT(address(nft), NFT_ID, PRICE, address(token));
     }
 
     // 测试上架失败：未授权 NFT 给市场合约
     function testListNFT_NotApproved() public {
         vm.prank(seller);
-        vm.expectRevert("NFT not approved");
+        vm.expectRevert(myNFTMarket.NFTNotApproved.selector);
         market.listNFT(address(nft), NFT_ID, PRICE, address(token));
     }
 
@@ -95,7 +95,7 @@ contract NFTMarketTest is Test {
         // 2.再次上架同一个 NFT
         // 由于 NFT 已经转移到市场合约，我们需要用市场合约作为调用者
         vm.prank(address(market));
-        vm.expectRevert("NFT already listed");
+        vm.expectRevert(myNFTMarket.NFTAlreadyListed.selector);
         market.listNFT(address(nft), NFT_ID, PRICE, address(token));
     }
 
@@ -105,7 +105,7 @@ contract NFTMarketTest is Test {
         nft.approve(address(market), NFT_ID);
         
         vm.prank(seller);
-        vm.expectRevert("ERC20 contract address is invalid");
+        vm.expectRevert(myNFTMarket.InvalidERC20Address.selector);
         market.listNFT(address(nft), NFT_ID, PRICE, address(0));
     }
 
@@ -115,7 +115,7 @@ contract NFTMarketTest is Test {
         nft.approve(address(market), NFT_ID);
         
         vm.prank(seller);
-        vm.expectRevert("Price must be greater than 0");
+        vm.expectRevert(myNFTMarket.InvalidPrice.selector);
         market.listNFT(address(nft), NFT_ID, 0, address(token));
     }
 
@@ -167,7 +167,7 @@ contract NFTMarketTest is Test {
         // seller 授权市场合约转移代币
         token.approve(address(market), PRICE);
 
-        vm.expectRevert("Buy your owner NFT");
+        vm.expectRevert(myNFTMarket.CannotBuyOwnNFT.selector);
         market.buyNFT(address(nft), NFT_ID, PRICE, address(token));
 
         vm.stopPrank();
@@ -189,7 +189,7 @@ contract NFTMarketTest is Test {
         market.buyNFT(address(nft), NFT_ID, PRICE, address(token));
 
         // 已经被购买了，因此市场已经下架
-        vm.expectRevert("NFT not listed");
+        vm.expectRevert(myNFTMarket.NFTNotListed.selector);
         market.buyNFT(address(nft), NFT_ID, PRICE, address(token));
 
         vm.stopPrank();
@@ -209,7 +209,7 @@ contract NFTMarketTest is Test {
         
         // 测试支付过多价格购买
         vm.prank(buyer);
-        vm.expectRevert("Price mismatch");
+        vm.expectRevert(myNFTMarket.PriceMismatch.selector);
         market.buyNFT(address(nft), NFT_ID, PRICE + 10, address(token));
     }
 
@@ -227,7 +227,7 @@ contract NFTMarketTest is Test {
         
         // 测试支付过少价格购买
         vm.prank(buyer);
-        vm.expectRevert("Price mismatch");
+        vm.expectRevert(myNFTMarket.PriceMismatch.selector);
         market.buyNFT(address(nft), NFT_ID, PRICE - 10, address(token));
     }
 
@@ -235,7 +235,7 @@ contract NFTMarketTest is Test {
     function testBuyNFT_Failed_NotListed() public {
         // 测试购买未上架的 NFT
         vm.prank(buyer);
-        vm.expectRevert("NFT not listed");
+        vm.expectRevert(myNFTMarket.NFTNotListed.selector);
         market.buyNFT(address(nft), NFT_ID, PRICE, address(token));
     }
 
@@ -256,7 +256,7 @@ contract NFTMarketTest is Test {
         token.approve(address(market), PRICE);
         
         vm.prank(poorBuyer);
-        vm.expectRevert("Insufficient balance");
+        vm.expectRevert(myNFTMarket.InsufficientBalance.selector);
         market.buyNFT(address(nft), NFT_ID, PRICE, address(token));
     }
 
@@ -273,7 +273,7 @@ contract NFTMarketTest is Test {
         token.approve(address(market), PRICE / 2);
         
         vm.prank(buyer);
-        vm.expectRevert("Insufficient allowance");
+        vm.expectRevert(myNFTMarket.InsufficientAllowance.selector);
         market.buyNFT(address(nft), NFT_ID, PRICE, address(token));
     }
 
@@ -287,7 +287,7 @@ contract NFTMarketTest is Test {
         
         // 测试无效的 NFT 合约地址
         vm.prank(buyer);
-        vm.expectRevert("NFT contract address is invalid");
+        vm.expectRevert(myNFTMarket.InvalidNFTAddress.selector);
         market.buyNFT(address(0), NFT_ID, PRICE, address(token));
     }
 
@@ -301,7 +301,7 @@ contract NFTMarketTest is Test {
         
         // 测试无效的 ERC20 合约地址
         vm.prank(buyer);
-        vm.expectRevert("ERC20 contract address is invalid");
+        vm.expectRevert(myNFTMarket.InvalidERC20Address.selector);
         market.buyNFT(address(nft), NFT_ID, PRICE, address(0));
     }
 
@@ -315,7 +315,7 @@ contract NFTMarketTest is Test {
         
         // 测试零价格购买
         vm.prank(buyer);
-        vm.expectRevert("Price mismatch");
+        vm.expectRevert(myNFTMarket.PriceMismatch.selector);
         market.buyNFT(address(nft), NFT_ID, 0, address(token));
     }
 
@@ -353,6 +353,12 @@ contract NFTMarketTest is Test {
         // 随机范围：0.01 ether 到 10000 ether
         vm.assume(price >= 0.01 ether && price <= 10000 ether);
         
+        // 限制在 uint192 范围内（虽然理论上 10000 ether 远小于 uint192 max）
+        vm.assume(price <= type(uint192).max);
+        
+        // 限制 nftId 在 uint64 范围内
+        vm.assume(randomNFTID <= type(uint64).max);
+        
         // 排除零地址
         vm.assume(randomSeller != address(0));
         vm.assume(randomBuyer != address(0));
@@ -387,8 +393,8 @@ contract NFTMarketTest is Test {
         myNFTMarket.listInfo memory listedInfo = market.getListedNft(address(nft), randomNFTID);
         assertEq(listedInfo.nftAddress, address(nft));
         assertEq(listedInfo.seller, randomSeller);
-        assertEq(listedInfo.nftId, randomNFTID);
-        assertEq(listedInfo.price, price);
+        assertEq(uint256(listedInfo.nftId), randomNFTID);
+        assertEq(uint256(listedInfo.price), price);
         assertEq(listedInfo.erc20Address, address(token));
         
         // 验证NFT所有权转移

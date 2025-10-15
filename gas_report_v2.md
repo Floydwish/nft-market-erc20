@@ -1,7 +1,7 @@
 # NFTMarket Gas 消耗报告 v2 (优化版)
 
 > 优化时间：2025-10-15  
-> 优化项：Custom Errors + 结构体优化（uint64 + uint192）  
+> 优化项：1. 自定义 Errors; 2. 结构体优化（uint64 + uint192） 3.存储缓存
 > 基准版本：v1
 
 ---
